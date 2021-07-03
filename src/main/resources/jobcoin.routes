@@ -1,0 +1,1 @@
+GET /createAccounts/:names               com.gemini.jobcoin.controller.JobCoinController.createAccounts(names: Seq[String])
