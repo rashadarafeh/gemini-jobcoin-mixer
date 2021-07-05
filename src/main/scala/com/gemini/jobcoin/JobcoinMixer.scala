@@ -29,6 +29,7 @@ object JobcoinMixer extends App {
   val router: PlayRouter = new _root_.router.Routes(errorHandler, routes, "/")
   val server = new Server(config, errorHandler, router, 5432)
 
+  //val scheduledFuture = backend.startPollingBalances()
   val scheduledFuture = backend.startPollingTransactions()
 
   sys.addShutdownHook {

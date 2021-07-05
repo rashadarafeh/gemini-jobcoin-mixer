@@ -1,10 +1,11 @@
 package com.gemini.jobcoin
 
-import java.util.UUID
+import java.util.{Date, UUID}
 import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
 import com.typesafe.config.Config
-import scala.concurrent.{ExecutionContext}
+
+import scala.concurrent.ExecutionContext
 
 class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: ExecutionContext) {
   val initialDelay = config.getInt("jobcoin.timer.initialDelay")
@@ -21,6 +22,7 @@ class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: Executi
   // timed transactions thread will reading from it separately. which means not using some pretty scala code in a few places :(
   import java.util.concurrent.ConcurrentHashMap
   val depositAddressDB = new ConcurrentHashMap[String, Seq[String]]()
+  var lastTimeStamp: Date = new Date(0)
 
   def createAccounts(addresses: Seq[String]) = {
     val depositAddress = UUID.randomUUID().toString
@@ -30,7 +32,7 @@ class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: Executi
     Option(depositAddress)
   }
 
-  def startPollingTransactions() = {
+  def startPollingBalances() = {
     val ex = new ScheduledThreadPoolExecutor(1)
     val task = new Runnable {
       def run() {
@@ -57,6 +59,33 @@ class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: Executi
               case e: Exception => println("Error! Balance could not be transferred from: " + depositAccount + "!! " + e.getMessage)
             }
           }
+        }
+      }
+    }
+    ex.scheduleAtFixedRate(task, initialDelay, interval, TimeUnit.SECONDS)
+  }
+
+  def startPollingTransactions() = {
+    val ex = new ScheduledThreadPoolExecutor(1)
+    val task = new Runnable {
+      def run() {
+        for {
+          transactions <- client.getTransactions()
+        } yield {
+          transactions.map ( transaction =>
+            try {
+              if(transaction.getTimestamp().after(lastTimeStamp) && depositAddressDB.containsKey(transaction.toAddress)) {
+                lastTimeStamp = transaction.getTimestamp()
+                val addresses = depositAddressDB.getOrDefault(transaction.toAddress, Seq.empty)
+                val amountGoingToAddress = transaction.amount.toFloat/addresses.size.toFloat
+                addresses.map { address =>
+                  client.sendTransfer(transaction.toAddress, address, amountGoingToAddress)
+                }
+              }
+            } catch {
+              case e: Exception => println("Error! Balance could not be transferred from: " + transaction.toAddress + "!! " + e.getMessage)
+            }
+          )
         }
       }
     }

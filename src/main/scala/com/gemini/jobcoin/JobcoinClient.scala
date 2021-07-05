@@ -1,5 +1,8 @@
 package com.gemini.jobcoin
 
+import java.text.SimpleDateFormat
+import java.util.{Locale, TimeZone}
+
 import akka.stream.Materializer
 import com.gemini.jobcoin.JobcoinClient.{AccountBalanceResponse, TransactionResponse}
 import com.typesafe.config.Config
@@ -61,7 +64,14 @@ class JobcoinClient(config: Config)(implicit materializer: Materializer) {
 }
 
 object JobcoinClient {
-  case class TransactionResponse(timestamp: String, fromAddress: Option[String], toAddress: String, amount: String)
+  val format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+  format.setTimeZone(TimeZone.getTimeZone("UTC"))
+
+  case class TransactionResponse(timestamp: String, fromAddress: Option[String], toAddress: String, amount: String) {
+    def getTimestamp() = {
+      format.parse(timestamp)
+    }
+  }
   object TransactionResponse {
     implicit val jsonReads: Reads[TransactionResponse] = Json.reads[TransactionResponse]
   }
