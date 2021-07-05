@@ -18,6 +18,8 @@ class JobcoinClient(config: Config)(implicit materializer: Materializer) {
   private val apiTransactionUrl = config.getString("jobcoin.apiTransactionsUrl")
   private val apiAddressUrl = config.getString("jobcoin.apiAddressesUrl")
 
+  def stopClient() = wsClient.close()
+
   def getBalanceForAddress(address: String): Future[AccountBalanceResponse] = async {
     val response = await {
       wsClient
@@ -50,7 +52,9 @@ class JobcoinClient(config: Config)(implicit materializer: Materializer) {
     )
     await {
       wsClient
-        .url(apiTransactionUrl).post(body)
+        .url(apiTransactionUrl)
+        .withHttpHeaders("Content-type" -> "application/x-www-form-urlencoded")
+        .post(body)
     }
   }
 

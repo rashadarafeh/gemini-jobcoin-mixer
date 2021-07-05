@@ -1,14 +1,14 @@
 package com.gemini.jobcoin
 
 import java.util.UUID
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 
-import akka.actor.Scheduler
+import com.typesafe.config.Config
+import scala.concurrent.{ExecutionContext}
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
-
-class JobcoinBackend(client: JobcoinClient, scheduler: Scheduler)(implicit ec: ExecutionContext) {
+class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: ExecutionContext) {
+  val initialDelay = config.getInt("jobcoin.timer.initialDelay")
+  val interval = config.getInt("jobcoin.timer.interval")
 
   // instead of building out a database, and ive considered using some
   // simple json file dbs for this. but for sake of time, im going to
@@ -30,10 +30,11 @@ class JobcoinBackend(client: JobcoinClient, scheduler: Scheduler)(implicit ec: E
     Option(depositAddress)
   }
 
-  def startPollingTransactions(): Unit = {
+  def startPollingTransactions() = {
+    val ex = new ScheduledThreadPoolExecutor(1)
     val task = new Runnable {
       def run() {
-        println("running timed task")
+        //println("running timed task")
         val accounts = depositAddressDB.keys()
         while(accounts.hasMoreElements) {
           val depositAccount = accounts.nextElement()
@@ -42,25 +43,23 @@ class JobcoinBackend(client: JobcoinClient, scheduler: Scheduler)(implicit ec: E
             balance <- client.getBalanceForAddress(depositAccount)
             addresses = depositAddressDB.getOrDefault(depositAccount, Seq.empty)
           } yield {
-            println("we have some things to move!")
             try {
               val numOfAddresses = addresses.size
-              val amountGoingToAddress = if(numOfAddresses != 0) balance.balance.toFloat/numOfAddresses else 0
-
-              addresses.map { address =>
-                client.sendTransfer(depositAccount, address, amountGoingToAddress)
+              if(numOfAddresses > 0 && balance.balance.toFloat > 0.0f) {
+                //println("balance is: " + balance.balance)
+                val amountGoingToAddress = balance.balance.toFloat/numOfAddresses
+                addresses.map { address =>
+                  client.sendTransfer(depositAccount, address, amountGoingToAddress)
+                }
               }
-            } catch {
-              case e: Exception => println("Error! Balance was not a readable number for deposit account: " + depositAccount + "!!")
-            }
 
+            } catch {
+              case e: Exception => println("Error! Balance could not be transferred from: " + depositAccount + "!! " + e.getMessage)
+            }
           }
         }
       }
     }
-    scheduler.schedule(
-      initialDelay = Duration(5, TimeUnit.SECONDS),
-      interval = Duration(10, TimeUnit.SECONDS),
-      runnable = task)
+    ex.scheduleAtFixedRate(task, initialDelay, interval, TimeUnit.SECONDS)
   }
 }

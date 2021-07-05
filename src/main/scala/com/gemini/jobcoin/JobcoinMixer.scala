@@ -17,25 +17,26 @@ object JobcoinMixer extends App {
   // Create an actor system
   implicit val actorSystem = ActorSystem()
   implicit val materializer = ActorMaterializer()
-  val scheduler = actorSystem.scheduler
   // Load Config
   val config = ConfigFactory.load()
 
   val client = new JobcoinClient(config)
-  val backend = new JobcoinBackend(client, scheduler)
+  val backend = new JobcoinBackend(client, config)
   val jobcoinController = new JobCoinController(backend)
   val errorHandler = play.api.http.DefaultHttpErrorHandler
-
-  //println("running")
 
   val routes = new jobcoin.Routes(errorHandler, jobcoinController)
   val router: PlayRouter = new _root_.router.Routes(errorHandler, routes, "/")
   val server = new Server(config, errorHandler, router, 5432)
 
-  backend.startPollingTransactions()
+  val scheduledFuture = backend.startPollingTransactions()
 
   sys.addShutdownHook {
+    client.stopClient()
+    scheduledFuture.cancel(true)
     server.stop()
+    materializer.shutdown()
+    actorSystem.terminate()
   }
   server.start()
 }
