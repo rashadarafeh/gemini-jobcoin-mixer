@@ -1,14 +1,15 @@
 package com.gemini.jobcoin.controller
 
 import com.gemini.jobcoin.JobcoinBackend
+import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
-import play.api.mvc.{Action, Controller, PathBindable}
+import play.api.mvc.{AbstractController, ControllerComponents, PathBindable}
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext
 
-class JobCoinController(jobcoinBackend: JobcoinBackend)(implicit ec: ExecutionContext) extends  Controller {
-
+@Singleton
+class JobCoinController @Inject()(jobcoinBackend: JobcoinBackend,cc: ControllerComponents)(implicit exec: ExecutionContext) extends AbstractController(cc) {
   def createAccounts(addresses: Seq[String]) = {
     // for metrics purposes this call can be wrapped in a timer
     // to report performance
