@@ -6,8 +6,11 @@ import java.util.concurrent.{ScheduledThreadPoolExecutor, TimeUnit}
 import com.typesafe.config.Config
 
 import scala.concurrent.ExecutionContext
+import play.api.Logger
 
 class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: ExecutionContext) {
+
+  val logger: Logger = Logger(this.getClass())
   val initialDelay = config.getInt("jobcoin.timer.initialDelay")
   val interval = config.getInt("jobcoin.timer.interval")
 
@@ -36,7 +39,7 @@ class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: Executi
     val ex = new ScheduledThreadPoolExecutor(1)
     val task = new Runnable {
       def run() {
-        //println("running timed task")
+        //logger.logger.info("running timed task")
         val accounts = depositAddressDB.keys()
         while(accounts.hasMoreElements) {
           val depositAccount = accounts.nextElement()
@@ -48,7 +51,7 @@ class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: Executi
             try {
               val numOfAddresses = addresses.size
               if(numOfAddresses > 0 && balance.balance.toFloat > 0.0f) {
-                //println("balance is: " + balance.balance)
+                //logger.logger.info("balance is: " + balance.balance)
                 val amountGoingToAddress = balance.balance.toFloat/numOfAddresses
                 addresses.map { address =>
                   client.sendTransfer(depositAccount, address, amountGoingToAddress)
@@ -56,7 +59,7 @@ class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: Executi
               }
 
             } catch {
-              case e: Exception => println("Error! Balance could not be transferred from: " + depositAccount + "!! " + e.getMessage)
+              case e: Exception => logger.logger.error("Error! Balance could not be transferred from: " + depositAccount + "!! " + e.getMessage)
             }
           }
         }
@@ -83,7 +86,7 @@ class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: Executi
                 }
               }
             } catch {
-              case e: Exception => println("Error! Balance could not be transferred from: " + transaction.toAddress + "!! " + e.getMessage)
+              case e: Exception => logger.logger.error("Error! Balance could not be transferred from: " + transaction.toAddress + "!! " + e.getMessage)
             }
           )
         }
