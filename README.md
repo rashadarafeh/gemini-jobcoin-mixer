@@ -1,5 +1,16 @@
 # gemini-jobcoin-mixer
 
+## Usage:
+ To run:
+ `sbt "runMain com.gemini.jobcoin.JobcoinMixer"`
+ 
+You can now use the endpoint to create desitnation addresses for yourself, you will be returned the new deposit address:
+`http://localhost:5432/api/createAdresses/address1,address2,address3`
+
+Now you can transfer jobcoin into the returned deposit account address, and those funds will be distributed into the adresses provided for that deposit account.
+
+## Discussion:
+
 So I liked the idea of writing the JobcoinMixer as a microservice, with an endpoint to create/submit distribution addresses. The endpoint returns a new desposit address to be used as the source to distribute funds to the submitted addresses.
 
 Endpoint format: `http://locahost:5432/api/createAddresses/name1,name2,name3`
