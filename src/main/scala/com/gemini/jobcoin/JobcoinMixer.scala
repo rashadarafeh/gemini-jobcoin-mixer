@@ -1,5 +1,7 @@
 package com.gemini.jobcoin
 
+import akka.Done
+import akka.actor.CoordinatedShutdown
 import com.gemini.jobcoin.controller._
 import com.typesafe.config.{Config, ConfigFactory}
 import play.api.http.HttpErrorHandler
@@ -7,6 +9,8 @@ import play.api._
 import play.api.ApplicationLoader.Context
 import play.filters.HttpFiltersComponents
 import jobcoin.Routes
+
+import scala.concurrent.Future
 
 class MixerLoader extends ApplicationLoader {
   def load(context: Context) = {
@@ -28,14 +32,20 @@ class JobCoinMixerComponents(context: Context) extends BuiltInComponentsFromCont
   val errorHandler = play.api.http.DefaultHttpErrorHandler
 
   logger.logger.info("Started Polling Transactions")
+  /** Uncomment the polling method you wish to run.
+   * One polls the depositAddress balances for any non-zero balance, and distributes it.
+   * The second polls the transaction history, and picks up new transactions to despositAddresses
+   * then distributes*/
   //val scheduledFuture = backend.startPollingBalances()
   val scheduledFuture = backend.startPollingTransactions()
-  sys.addShutdownHook {
+
+  coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate, "shutDown-all")
+  {  ()=>
     client.stopClient()
     scheduledFuture.cancel(true)
     materializer.shutdown()
     actorSystem.terminate()
+    Future.successful(Done.done)
   }
-
   lazy val router = new jobcoin.Routes(errorHandler, jobcoinController)
 }

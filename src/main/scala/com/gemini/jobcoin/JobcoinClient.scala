@@ -8,9 +8,10 @@ import com.gemini.jobcoin.JobcoinClient.{AccountBalanceResponse, TransactionResp
 import com.typesafe.config.Config
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+import play.api.libs.ws.EmptyBody
 import play.api.libs.ws.JsonBodyReadables._
 import play.api.libs.ws.JsonBodyWritables._
-import play.api.libs.ws.ahc._
+import play.api.libs.ws.ahc.StandaloneAhcWSClient
 
 import scala.async.Async._
 import scala.concurrent.ExecutionContext.Implicits._
@@ -47,17 +48,20 @@ class JobcoinClient(config: Config)(implicit materializer: Materializer) {
       .get
   }
 
-  def sendTransfer(fromAddress: String, toAddress: String, amount: Float): Unit = async {
-    val body = Json.obj(
-      "fromAddress" -> fromAddress,
-      "toAddress" -> toAddress,
-      "amount" -> amount.toString
+  def sendTransfer(fromAddress: String, toAddress: String, amount: BigDecimal): Unit = async {
+    val params = Seq(("fromAddress",fromAddress),
+      ("toAddress",toAddress),
+      ("amount",amount)
     )
     await {
       wsClient
         .url(apiTransactionUrl)
         .withHttpHeaders("Content-type" -> "application/x-www-form-urlencoded")
-        .post(body)
+        .addQueryStringParameters(
+          ("fromAddress",fromAddress),
+          ("toAddress",toAddress),
+          ("amount",amount.toString()))
+        .post(EmptyBody)
     }
   }
 
