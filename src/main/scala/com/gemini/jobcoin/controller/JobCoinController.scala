@@ -11,8 +11,6 @@ import scala.concurrent.ExecutionContext
 @Singleton
 class JobCoinController @Inject()(jobcoinBackend: JobcoinBackend,cc: ControllerComponents)(implicit exec: ExecutionContext) extends AbstractController(cc) {
   def createAccounts(addresses: Seq[String]) = {
-    // for metrics purposes this call can be wrapped in a timer
-    // to report performance
     Action {
       Ok(Json.toJson(
         Map(
@@ -24,17 +22,17 @@ class JobCoinController @Inject()(jobcoinBackend: JobcoinBackend,cc: ControllerC
 }
 
 object Binders {
-  // This binder is so that we can accept a Seq[String]
-  // as input to the endpoint in the form of comma seperated
-  // strings.
-  // e.g. localhost:5432/api/createAddreses/name1,name2,name3
-  //
-  // I have used binders like these before, and am re-using a
-  // favored one here.
-  //
-  // To make a PathBindable[Seq[T]], we need to accumalate the results
-  // from binding T, which returns an Either[something, T]. so we go through
-  // the Eithers recursively and accumulate their right values into the Seq[T]
+  /** This binder is so that we can accept a Seq[String]
+  * as input to the endpoint in the form of comma seperated
+  * strings.
+  * e.g. localhost:5432/api/createAddreses/name1,name2,name3
+  *
+  * I have used binders like these before, and am re-using a
+  * favored one here.
+  *
+  * To make a PathBindable[Seq[T]], we need to accumalate the results
+  * from binding T, which returns an Either[something, T]. so we go through
+  * the Eithers recursively and accumulate their right values into the Seq[T] */
   def traverseEither[A, B, C](values: List[A])(f: A => Either[C, B]): Either[C, List[B]] = {
     @tailrec
     def loop(values: List[A], acc: List[B]): Either[C, List[B]] = {
@@ -64,6 +62,6 @@ object Binders {
     def unbind(key: String, list: Seq[T]): String =
       list.map(p.unbind(key, _)).mkString(",")
   }
-  // The end result: PathBindable[Seq[T]]
+  /** The end result: PathBindable[Seq[T]] */
   implicit def commaSeparatedSeqBindable[T: PathBindable] = seqBindable[T](",")
 }
