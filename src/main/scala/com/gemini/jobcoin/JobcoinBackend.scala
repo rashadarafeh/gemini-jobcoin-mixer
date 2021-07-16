@@ -43,17 +43,12 @@ class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: Executi
             addresses = depositAddressDB.getOrDefault(depositAccount, Seq.empty)
             amounts = getBalancesForAddressesRandomized(addresses, BigDecimal(balance.balance))
           } yield {
-            try {
-              if(addresses.size > 0 && balance.balance.toFloat > 0.0f) {
-                (addresses zip amounts).map { case (address, amount) => {
-                  client.sendTransfer(depositAccount, address, amount)
-                }
-
-                }
-              }
-            } catch {
-              case e: Exception => logger.logger.error("Error! Balance could not be transferred from: " + depositAccount + "!! " + e.getMessage)
-            }
+            sendAmountsToAddresses(
+              addresses,
+              amounts,
+              balance.balance,
+              depositAccount
+            )
           }
         }
       }
@@ -69,25 +64,34 @@ class JobcoinBackend(client: JobcoinClient, config: Config)(implicit ec: Executi
           transactions <- client.getTransactions()
         } yield {
           transactions.map ( transaction =>
-            try {
-              if(transaction.getTimestamp().after(lastTimeStamp) && depositAddressDB.containsKey(transaction.toAddress)) {
-                lastTimeStamp = transaction.getTimestamp()
-                val addresses = depositAddressDB.getOrDefault(transaction.toAddress, Seq.empty)
-                val amounts = getBalancesForAddressesRandomized(addresses, BigDecimal(transaction.amount))
-                if(addresses.size > 0 && transaction.amount.toFloat > 0.0f) {
-                  (addresses zip amounts).map { case (address, amount) => {
-                    client.sendTransfer(transaction.toAddress, address, amount)
-                  }}
-                }
-              }
-            } catch {
-              case e: Exception => logger.logger.error("Error! Balance could not be transferred from: " + transaction.toAddress + "!! " + e.getMessage)
+            if(transaction.getTimestamp().after(lastTimeStamp) && depositAddressDB.containsKey(transaction.toAddress)) {
+              lastTimeStamp = transaction.getTimestamp()
+              val addresses = depositAddressDB.getOrDefault(transaction.toAddress, Seq.empty)
+              val amounts = getBalancesForAddressesRandomized(addresses, BigDecimal(transaction.amount))
+              sendAmountsToAddresses(
+                addresses,
+                amounts,
+                transaction.amount,
+                transaction.toAddress
+              )
             }
           )
         }
       }
     }
     ex.scheduleAtFixedRate(task, initialDelay, interval, TimeUnit.SECONDS)
+  }
+
+  private def sendAmountsToAddresses(addresses: Seq[String], amounts: Seq[BigDecimal], totalAmount: String, despositAccount: String) = {
+    try{
+      if(addresses.size > 0 && totalAmount.toFloat > 0.0f) {
+        (addresses zip amounts).map { case (address, amount) => {
+          client.sendTransfer(despositAccount, address, amount)
+        }}
+      }
+    } catch {
+      case e: Exception => logger.logger.error("Error! Balance could not be transferred from: " + despositAccount + "!! " + e.getMessage)
+    }
   }
 }
 

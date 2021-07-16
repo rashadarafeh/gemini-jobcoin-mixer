@@ -31,13 +31,13 @@ class JobCoinMixerComponents(context: Context) extends BuiltInComponentsFromCont
   val jobcoinController = new JobCoinController(backend, controllerComponents)
   val errorHandler = play.api.http.DefaultHttpErrorHandler
 
-  logger.logger.info("Started Polling Transactions")
   /** Uncomment the polling method you wish to run.
    * One polls the depositAddress balances for any non-zero balance, and distributes it.
    * The second polls the transaction history, and picks up new transactions to despositAddresses
    * then distributes*/
   //val scheduledFuture = backend.startPollingBalances()
   val scheduledFuture = backend.startPollingTransactions()
+  logger.logger.info("Started Polling Transactions")
 
   coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate, "shutDown-all")
   {  ()=>

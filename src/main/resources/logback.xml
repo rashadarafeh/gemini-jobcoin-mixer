@@ -13,11 +13,11 @@
         </encoder>
     </appender>
 
-    <logger name="play" level="DEBUG" />
+    <logger name="play" level="INFO" />
 
     <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF" />
 
-    <root level="DEBUG">
+    <root level="WARN">
         <appender-ref ref="STDOUT" />
     </root>
 
