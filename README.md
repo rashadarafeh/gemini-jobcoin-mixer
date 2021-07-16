@@ -31,7 +31,7 @@ Advantage: Process the most recent messages only. Don't need to check balances o
 
 Disadvantage: The transaction history api will return an ever growing list of transactions, many we don't care about, most we have already processed. we will be checking the entire output for new messages each time
 
-#### In a production setting, it coud be most ideal that transactions/events would be consumed off a queue and processed on arrival
+#### In a production setting, it may be most ideal that transactions/events would be consumed off a queue and processed on arrival
 
 
 
