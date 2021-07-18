@@ -15,9 +15,12 @@ class MixerTests extends FlatSpec with Matchers {
     assert(answer == expectedResults)
   }
 
-  "JobCoinBackend" should "distribute balance randomly" in {
+  "JobCoinBackend" should "distribute balance randomly, and sum should be equal to balance" in {
     val addresses = Seq("address1", "address2", "address3")
     val balance = BigDecimal("9.0")
-    JobcoinBackend.getBalancesForAddressesRandomized(addresses, balance)
+    val dist = JobcoinBackend.getBalancesForAddressesRandomized(addresses, balance)
+    val sum = (BigDecimal(0) /: dist) (_ + _)
+
+    assert(sum == balance)
   }
 }

@@ -120,8 +120,6 @@ object JobcoinBackend {
         amountToAddress
       }
     }
-    /** Uncomment for running in unit tests to see output */
-    //println("amounts: " + results)
     results
   }
 }
