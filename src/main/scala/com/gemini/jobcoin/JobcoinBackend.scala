@@ -120,8 +120,7 @@ object JobcoinBackend {
         amountToAddress
       }
     }
-    /** Uncomment for running in unit tests to see output
-    * cant exactly have an expectation for randomized output */
+    /** Uncomment for running in unit tests to see output */
     //println("amounts: " + results)
     results
   }
